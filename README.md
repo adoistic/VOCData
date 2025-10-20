@@ -1,12 +1,51 @@
 ## VOC Data – IIIF Manifests with Transcriptions
 
-This repository contains a Jupyter notebook and a dataset of IIIF manifests from the NL-HaNA VOC Archives, augmented with page-level transcription text. The notebook downloads transcription TXT files and corresponding IIIF JSON manifests, merges the text into each manifest's canvases, and saves per-document outputs as well as a combined manifest.
+This repository contains a Jupyter notebook for processing IIIF manifests from the NL-HaNA VOC Archives, augmented with page-level transcription text. The notebook downloads transcription TXT files and corresponding IIIF JSON manifests, merges the text into each manifest's canvases, and saves per-document outputs as well as a combined manifest.
 
 ### Contents
 - `VOC_Data_Downloader.ipynb`: Batch processor that downloads, merges, and exports manifests.
-- `merged_manifests/`: Output directory containing:
-  - `merged_*.json`: One IIIF Manifest per document with an added `text` field per canvas.
-  - `combined_all_manifests.json`: A single IIIF Manifest aggregating all canvases from successful merges.
+- `upload_to_huggingface.py`: Script to upload generated datasets to Hugging Face.
+- `globalise_transcriptions_v2_txt.tab`: Source file with transcription URLs.
+
+### Accessing the Dataset
+
+The processed dataset (19GB of IIIF manifests with transcriptions) is hosted on **Hugging Face Datasets** for free, fast access:
+
+**🤗 Hugging Face:** [huggingface.co/datasets/adoistic/voc-data](https://huggingface.co/datasets/adoistic/voc-data)
+
+#### Download the dataset:
+
+```python
+from huggingface_hub import hf_hub_download
+
+# Download the combined manifest (7GB)
+file = hf_hub_download(
+    repo_id="adoistic/voc-data",
+    filename="combined_all_manifests.json",
+    repo_type="dataset"
+)
+
+# Or download individual manifest files
+file = hf_hub_download(
+    repo_id="adoistic/voc-data",
+    filename="merged_1111.json",
+    repo_type="dataset"
+)
+
+# Load and use the data
+import json
+with open(file, 'r') as f:
+    manifest = json.load(f)
+```
+
+#### List all available files:
+
+```python
+from huggingface_hub import list_repo_files
+
+files = list_repo_files("adoistic/voc-data", repo_type="dataset")
+print(f"Available files: {len(files)}")
+```
 
 ### Data source and license
 - Manifests: `https://data.globalise.huygens.knaw.nl/manifests/inventories/{id}.json`
@@ -64,9 +103,17 @@ Example (truncated):
 
 `combined_all_manifests.json` is also a `Manifest` whose `items` array is the concatenation of the `items` from all successful `merged_*.json` files. Its `label` and `metadata` summarize the collection.
 
-### How to run
-1. Ensure you have a `.tab` file containing TXT download URLs (one per line). Example referenced in the notebook: `globalise_transcriptions_v2_txt.tab`.
-2. Open `VOC_Data_Downloader.ipynb` in Jupyter and run all cells, or call `main(...)` from within the notebook:
+### How to Generate the Dataset Yourself
+
+If you want to generate the dataset from scratch:
+
+1. **Install dependencies:**
+```bash
+pip install requests huggingface_hub
+```
+
+2. **Run the notebook:**
+Open `VOC_Data_Downloader.ipynb` in Jupyter and run all cells, or call `main(...)`:
 
 ```python
 main('globalise_transcriptions_v2_txt.tab')
@@ -81,6 +128,22 @@ main('globalise_transcriptions_v2_txt.tab', max_workers=20)
 Outputs will be written to:
 - `merged_manifests/` (individual manifests and `combined_all_manifests.json`)
 - `merged_manifests.zip`
+
+3. **Upload to Hugging Face (Optional):**
+
+To share your generated dataset:
+
+a. Create a free account at [huggingface.co](https://huggingface.co)
+b. Get your API token from [Settings > Access Tokens](https://huggingface.co/settings/tokens)
+c. Run the upload script:
+
+```bash
+python3 upload_to_huggingface.py \
+    --token YOUR_HF_TOKEN \
+    --repo-id your-username/voc-data
+```
+
+This uploads all files in `merged_manifests/` to your Hugging Face dataset repository.
 
 ### Environment requirements
 The notebook depends on standard Python 3 libraries plus `requests`. Minimal setup:
